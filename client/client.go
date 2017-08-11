@@ -2,6 +2,7 @@ package yodlee
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/parnurzeal/gorequest"
@@ -371,6 +372,88 @@ func (c *Client) checkSession() []error {
 	return nil
 }
 
+// ----------------------------------------------------------------------------------------------------
+// Possible messages:
+// ----------------------------------------------------------------------------------------------------
+
+type YodleeErrResp interface {
+	IsErrror() bool
+	ErrorMessage() string
+}
+
+type ErrorInfo struct {
+	ErrorCode     string `json:"errorCode"`
+	ErrMessage    string `json:"errorMessage"`
+	ErrorDetail   string `json:"errorDetail"`
+	ReferenceCode string `json:"referenceCode"`
+}
+
+func (e *ErrorInfo) IsErrror() bool {
+	return len(e.ErrorCode) > 0 || len(e.ErrMessage) > 0 || len(e.ReferenceCode) > 0 || len(e.ErrorDetail) > 0
+}
+func (e *ErrorInfo) ErrorMessage() string {
+	return fmt.Sprintf("%s/%s/%s/%s", e.ErrorCode, e.ErrMessage, e.ReferenceCode, e.ErrorDetail)
+}
+
+type MultipleErrorInfo struct {
+	Errors []ErrorInfo `json:"Error"`
+}
+
+func (e *MultipleErrorInfo) IsErrror() bool {
+	if e.Errors == nil || len(e.Errors) == 0 {
+		return false
+	}
+	for _, er := range e.Errors {
+		if er.IsErrror() {
+			return true
+		}
+	}
+	return false
+}
+func (e *MultipleErrorInfo) ErrorMessage() string {
+	if e.Errors == nil || len(e.Errors) == 0 {
+		return "No error"
+	}
+	errStr := ""
+	for _, er := range e.Errors {
+		if er.IsErrror() {
+			errStr += "; " + er.ErrorMessage()
+		}
+	}
+	return errStr
+}
+
+type ErrorOccuredMessage struct {
+	ErrorOccurred string `json:"errorOccurred"`
+	ExceptionType string `json:"exceptionType"`
+	ReferenceCode string `json:"referenceCode"`
+	Message       string `json:"message"`
+}
+
+func (e *ErrorOccuredMessage) IsErrror() bool {
+	if e.ErrorOccurred == "true" {
+		return true
+	}
+	return false
+}
+func (e *ErrorOccuredMessage) ErrorMessage() string {
+	return fmt.Sprintf("%s/%s/%s/%s", e.ErrorOccurred, e.ExceptionType, e.ReferenceCode, e.Message)
+}
+
+var _ YodleeErrResp = new(ErrorInfo)
+var _ YodleeErrResp = new(MultipleErrorInfo)
+var _ YodleeErrResp = new(ErrorOccuredMessage)
+
+func GetYodleeErrorCandidates() []YodleeErrResp {
+	return []YodleeErrResp{
+		new(ErrorInfo),
+		new(MultipleErrorInfo),
+		new(ErrorOccuredMessage),
+	}
+}
+
+// ----------------------------------------------------------------------------------------------------
+
 // request is a helper for making requests to Yodlee and formatting their responses.
 func request(url string, content interface{}, data interface{}) []error {
 	req := gorequest.New()
@@ -382,8 +465,21 @@ func request(url string, content interface{}, data interface{}) []error {
 	if errs != nil {
 		return errs
 	}
+
+	for _, errResp := range GetYodleeErrorCandidates() {
+		if err := json.Unmarshal([]byte(body), errResp); err != nil {
+			return []error{err}
+		} else {
+			fmt.Printf("is=%t, errResp=%#v\n", errResp.IsErrror(), errResp)
+			if errResp.IsErrror() {
+				return []error{errors.New(errResp.ErrorMessage())}
+			}
+		}
+	}
+
 	if err := json.Unmarshal([]byte(body), data); err != nil {
 		return []error{err}
 	}
+
 	return nil
 }
