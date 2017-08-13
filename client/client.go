@@ -365,6 +365,128 @@ func (c *Client) Register(email, password string) (*RegisterOutput, []error) {
 	return output, nil
 }
 
+type GetAllContentServicesInput struct {
+	CobSessionToken string `json:cobSessionToken"`
+	Notrim          string `json:notrim"`
+}
+
+type ContentServiceOutput struct {
+	ContentServiceID          int    `json:"contentServiceId"`
+	ServiceID                 int    `json:"serviceId"`
+	ContentServiceDisplayName string `json:"contentServiceDisplayName"`
+	OrganizationID            int    `json:"organizationId"`
+	OrganizationDisplayName   string `json:"organizationDisplayName"`
+	SiteID                    int    `json:"siteId"`
+	SiteDisplayName           string `json:"siteDisplayName"`
+	Custom                    bool   `json:"custom"`
+	LoginURL                  string `json:"loginUrl"`
+	HomeURL                   string `json:"homeUrl"`
+	RegistrationURL           string `json:"registrationUrl"`
+	PasswordHelpURL           string `json:"passwordHelpUrl,omitempty"`
+	ContactURL                string `json:"contactUrl"`
+	ContainerInfo             struct {
+		ContainerName string `json:"containerName"`
+		AssetType     int    `json:"assetType"`
+	} `json:"containerInfo"`
+	IsCredentialRequired      bool `json:"isCredentialRequired"`
+	AutoRegistrationSupported bool `json:"autoRegistrationSupported"`
+	AutoLoginType             int  `json:"autoLoginType"`
+	GeographicRegionsServed   []struct {
+		Country string `json:"country"`
+	} `json:"geographicRegionsServed"`
+	AutoPayCardSetupSupported                bool          `json:"autoPayCardSetupSupported"`
+	DirectCardPaymentSupported               bool          `json:"directCardPaymentSupported"`
+	DirectCheckPaymentSupported              bool          `json:"directCheckPaymentSupported"`
+	AutoPayCardCancelSupported               bool          `json:"autoPayCardCancelSupported"`
+	PaymentVerificationSupported             bool          `json:"paymentVerificationSupported"`
+	SupportedAutoPaySetupCardTypeIds         []interface{} `json:"supportedAutoPaySetupCardTypeIds"`
+	SupportedDirectPaymentCardTypeIds        []interface{} `json:"supportedDirectPaymentCardTypeIds"`
+	HasPaymentHistory                        bool          `json:"hasPaymentHistory"`
+	TimeToUpdatePaymentHistory               int           `json:"timeToUpdatePaymentHistory"`
+	TimeToPostDirectCardPayment              int           `json:"timeToPostDirectCardPayment"`
+	IsCSCForDirectPaymRequired               bool          `json:"isCSCForDirectPaymRequired"`
+	IsCSCForAutoPayRequired                  bool          `json:"isCSCForAutoPayRequired"`
+	TimeZoneID                               string        `json:"timeZoneId"`
+	IsIAVFastSupported                       bool          `json:"isIAVFastSupported"`
+	HasSiblingContentServices                bool          `json:"hasSiblingContentServices"`
+	IsFTEnabled                              bool          `json:"isFTEnabled"`
+	IsOnlinePaymentSupported                 bool          `json:"isOnlinePaymentSupported"`
+	AutoRegistrationPaperBillSuppressionType struct {
+		PaperBillSuppressionType string `json:"paperBillSuppressionType"`
+	} `json:"autoRegistrationPaperBillSuppressionType"`
+	AutoPayCardPaperBillSuppressionType struct {
+		PaperBillSuppressionType string `json:"paperBillSuppressionType"`
+	} `json:"autoPayCardPaperBillSuppressionType"`
+	DirectCardPaymentPaperBillSuppressionType struct {
+		PaperBillSuppressionType string `json:"paperBillSuppressionType"`
+	} `json:"directCardPaymentPaperBillSuppressionType"`
+	LoginForm struct {
+		ConjunctionOp struct {
+			ConjuctionOp int `json:"conjuctionOp"`
+		} `json:"conjunctionOp"`
+		ComponentList []struct {
+			ValueIdentifier string `json:"valueIdentifier"`
+			ValueMask       string `json:"valueMask"`
+			FieldType       struct {
+				TypeName string `json:"typeName"`
+			} `json:"fieldType"`
+			Size          int    `json:"size"`
+			Maxlength     int    `json:"maxlength"`
+			Name          string `json:"name"`
+			DisplayName   string `json:"displayName"`
+			IsEditable    bool   `json:"isEditable"`
+			IsOptional    bool   `json:"isOptional"`
+			IsEscaped     bool   `json:"isEscaped"`
+			HelpText      string `json:"helpText"`
+			IsOptionalMFA bool   `json:"isOptionalMFA"`
+			IsMFA         bool   `json:"isMFA"`
+		} `json:"componentList"`
+		DefaultHelpText string `json:"defaultHelpText"`
+	} `json:"loginForm"`
+	AddItemAccountSupported                    bool          `json:"addItemAccountSupported"`
+	IsAddAccountMultiFormAction                bool          `json:"isAddAccountMultiFormAction"`
+	IsAutoRegistrationMultiFormAction          bool          `json:"isAutoRegistrationMultiFormAction"`
+	IsAddItemAccountMultiFormAction            bool          `json:"isAddItemAccountMultiFormAction"`
+	IsSiteCredentialsStored                    bool          `json:"isSiteCredentialsStored"`
+	IsPaymentAmountRequiredForAutopay          bool          `json:"isPaymentAmountRequiredForAutopay"`
+	IsNumberOfPaymentsRequiredForAutopay       bool          `json:"isNumberOfPaymentsRequiredForAutopay"`
+	IsFrequencyRequiredForAutopay              bool          `json:"isFrequencyRequiredForAutopay"`
+	SupportedAutopayFrequencyTypes             []interface{} `json:"supportedAutopayFrequencyTypes"`
+	IsConveninceFeeChargedForDirectCardPayment bool          `json:"isConveninceFeeChargedForDirectCardPayment"`
+	IsEBillPaymSupprtd                         bool          `json:"isEBillPaymSupprtd"`
+	IsBetaSite                                 bool          `json:"isBetaSite"`
+	IsBPAASource                               bool          `json:"isBPAASource"`
+	IsBPAADest                                 bool          `json:"isBPAADest"`
+	SupportedBPSRecurringFrequencies           []interface{} `json:"supportedBPSRecurringFrequencies"`
+	CheckLeadInterval                          int           `json:"checkLeadInterval"`
+	CardLeadInterval                           int           `json:"cardLeadInterval"`
+	MfaType                                    struct {
+		TypeID   int    `json:"typeId"`
+		TypeName string `json:"typeName"`
+	} `json:"mfaType,omitempty"`
+	IsDirectTransferSupported bool   `json:"isDirectTransferSupported"`
+	IsSiblingAutoAdditionSafe bool   `json:"isSiblingAutoAdditionSafe"`
+	MfaCoverage               string `json:"mfaCoverage,omitempty"`
+	DefaultHelpText           string `json:"defaultHelpText"`
+}
+
+func (c *Client) GetAllContentServices(notrim bool) ([]ContentServiceOutput, []error) {
+	if errs := c.checkSession(); errs != nil {
+		return nil, errs
+	}
+	var input = &GetAllContentServicesInput{
+		CobSessionToken: c.SessionToken,
+		Notrim:          fmt.Sprintf("%t", notrim),
+	}
+	fmt.Printf("input=%#v\n", input)
+	var output []ContentServiceOutput
+	errs := request("https://rest.developer.yodlee.com/services/srest/restserver/v1.0/jsonsdk/ContentServiceTraversal/getAllContentServices", input, output)
+	if errs != nil {
+		return nil, errs
+	}
+	return output, nil
+}
+
 func (c *Client) checkSession() []error {
 	if c.SessionToken == "" {
 		return []error{ErrNoSessionToken}
