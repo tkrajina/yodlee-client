@@ -458,6 +458,9 @@ func GetYodleeErrorCandidates() []YodleeErrResp {
 func request(url string, content interface{}, data interface{}) []error {
 	req := gorequest.New()
 	_, body, errs := req.Post(url).
+		//Set("Content-Type", "application/json").
+		//Set("Content-Type", "application/x-www-form-urlencoded").
+		Set("Accept", "application/json").
 		Type("form").
 		Send(content).
 		End()
